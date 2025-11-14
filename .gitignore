@@ -27,3 +27,5 @@ Thumbs.db
 
 # Migrations (optional: keep if you want to track them)
 # investors/migrations/__pycache__/
+
+documents/

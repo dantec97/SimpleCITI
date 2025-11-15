@@ -1,16 +1,112 @@
 from django.db import models
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from django.db.models import Max, Q
 from .models import InvestorProfile, Document, AuditLog
 from .serializers import InvestorProfileSerializer, DocumentSerializer, AuditLogSerializer
 import os
+import pyotp
+import qrcode
+import io
+import base64
+from django.http import HttpResponse
+from django.contrib.auth import authenticate, login
+from rest_framework.authtoken.models import Token
 
 class InvestorProfileViewSet(viewsets.ModelViewSet):
     queryset = InvestorProfile.objects.all()
     serializer_class = InvestorProfileSerializer
     permission_classes = [permissions.IsAdminUser]  # Only admins can view/edit investors
+
+    # Add these MFA methods to InvestorProfileViewSet
+    @action(detail=False, methods=['post'], url_path='mfa/setup', permission_classes=[permissions.IsAuthenticated])
+    def setup_mfa(self, request):
+        """Generate MFA secret and QR code"""
+        user_profile = request.user.profile
+        
+        if user_profile.mfa_enabled:
+            return Response({"error": "MFA already enabled"}, status=400)
+        
+        # Generate secret
+        secret = pyotp.random_base32()
+        user_profile.mfa_secret = secret
+        user_profile.save()
+        
+        # Generate QR code
+        totp_uri = pyotp.totp.TOTP(secret).provisioning_uri(
+            name=request.user.email,
+            issuer_name="SecureInvestor"
+        )
+        
+        # Create QR code image
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(totp_uri)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        qr_code = base64.b64encode(buffer.getvalue()).decode()
+        
+        return Response({
+            "secret": secret,
+            "qr_code": f"data:image/png;base64,{qr_code}",
+            "message": "Scan QR code with Google Authenticator"
+        })
+    
+    @action(detail=False, methods=['post'], url_path='mfa/verify', permission_classes=[permissions.IsAuthenticated])
+    def verify_mfa(self, request):
+        """Verify TOTP code and enable MFA"""
+        user_profile = request.user.profile
+        code = request.data.get('code')
+        
+        if not user_profile.mfa_secret:
+            return Response({"error": "MFA not set up"}, status=400)
+        
+        totp = pyotp.TOTP(user_profile.mfa_secret)
+        
+        if totp.verify(code):
+            user_profile.mfa_enabled = True
+            user_profile.save()
+            
+            # Audit log
+            AuditLog.objects.create(
+                user=request.user,
+                action="MFA_ENABLED",
+                details="Multi-factor authentication enabled"
+            )
+            
+            return Response({"message": "MFA enabled successfully"})
+        else:
+            return Response({"error": "Invalid code"}, status=400)
+    
+    @action(detail=False, methods=['post'], url_path='mfa/disable', permission_classes=[permissions.IsAuthenticated])
+    def disable_mfa(self, request):
+        """Disable MFA (requires current TOTP code)"""
+        user_profile = request.user.profile
+        code = request.data.get('code')
+        
+        if not user_profile.mfa_enabled:
+            return Response({"error": "MFA not enabled"}, status=400)
+        
+        totp = pyotp.TOTP(user_profile.mfa_secret)
+        
+        if totp.verify(code):
+            user_profile.mfa_enabled = False
+            user_profile.mfa_secret = ''
+            user_profile.save()
+            
+            # Audit log
+            AuditLog.objects.create(
+                user=request.user,
+                action="MFA_DISABLED",
+                details="Multi-factor authentication disabled"
+            )
+            
+            return Response({"message": "MFA disabled successfully"})
+        else:
+            return Response({"error": "Invalid code"}, status=400)
 
 class DocumentViewSet(viewsets.ModelViewSet):
     queryset = Document.objects.all()
@@ -220,3 +316,45 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(action__icontains=action)
             
         return queryset
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def login_with_mfa(request):
+    """Login with optional MFA verification"""
+    username = request.data.get('username')
+    password = request.data.get('password')
+    mfa_code = request.data.get('mfa_code')
+    
+    user = authenticate(username=username, password=password)
+    
+    if not user:
+        return Response({"error": "Invalid credentials"}, status=400)
+    
+    # Check if MFA is enabled
+    if hasattr(user, 'profile') and user.profile.mfa_enabled:
+        if not mfa_code:
+            return Response({
+                "mfa_required": True,
+                "message": "MFA code required"
+            }, status=200)
+        
+        # Verify MFA code
+        totp = pyotp.TOTP(user.profile.mfa_secret)
+        if not totp.verify(mfa_code):
+            return Response({"error": "Invalid MFA code"}, status=400)
+    
+    # Create or get token
+    token, created = Token.objects.get_or_create(user=user)
+    
+    # Audit log
+    AuditLog.objects.create(
+        user=user,
+        action="LOGIN",
+        details=f"User logged in {'with MFA' if user.profile.mfa_enabled else 'without MFA'}"
+    )
+    
+    return Response({
+        "token": token.key,
+        "user_id": user.id,
+        "mfa_enabled": user.profile.mfa_enabled
+    })

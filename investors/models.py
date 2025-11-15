@@ -3,11 +3,15 @@ from django.contrib.auth.models import User
 
 class InvestorProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    phone_number = models.CharField(max_length=20, blank=True)
-    mfa_enabled = models.BooleanField(default=False)  # Placeholder for MFA logic
-
+    phone_number = models.CharField(max_length=15, blank=True)
+    
+    # Add MFA fields
+    mfa_enabled = models.BooleanField(default=False)
+    mfa_secret = models.CharField(max_length=32, blank=True)
+    backup_codes = models.JSONField(default=list, blank=True)
+    
     def __str__(self):
-        return self.user.username
+        return f"{self.user.username}'s Profile"
 
 class Document(models.Model):
     investor = models.ForeignKey(InvestorProfile, on_delete=models.CASCADE, related_name='documents')

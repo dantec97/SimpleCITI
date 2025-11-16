@@ -31,6 +31,7 @@ class SimpleTests(TestCase):
         """Test audit logging works"""
         user = User.objects.create_user(
             username='audittest',
+            email='audit@example.com',  # <-- Add this line
             password='testpass123'
         )
         log = AuditLog.objects.create(

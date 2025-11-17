@@ -8,6 +8,7 @@ from .forms import CustomUserCreationForm
 @admin.register(InvestorProfile)
 class InvestorProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'phone_number', 'mfa_enabled')
+    exclude = ('mfa_enabled', 'mfa_secret', 'backup_codes')
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):

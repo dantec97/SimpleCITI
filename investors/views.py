@@ -13,6 +13,8 @@ import base64
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login
 from rest_framework.authtoken.models import Token
+from django.conf import settings
+import boto3
 
 class InvestorProfileViewSet(viewsets.ModelViewSet):
     queryset = InvestorProfile.objects.all()
@@ -108,6 +110,30 @@ class InvestorProfileViewSet(viewsets.ModelViewSet):
         else:
             return Response({"error": "Invalid code"}, status=400)
 
+    @action(detail=False, methods=['post'], url_path='create_user', permission_classes=[permissions.IsAdminUser])
+    def create_user(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        email = request.data.get('email', '')
+        
+        if not username or not password:
+            return Response({'error': 'Username and password required'}, status=400)
+        
+        if User.objects.filter(username=username).exists():
+            return Response({'error': 'Username already exists'}, status=400)
+        
+        user = User.objects.create_user(username=username, password=password, email=email)
+        InvestorProfile.objects.create(user=user)
+        
+        # Audit log
+        AuditLog.objects.create(
+            user=request.user,
+            action="CREATE_USER",
+            details=f"Created user '{username}' with profile"
+        )
+        
+        return Response({'message': 'User created successfully', 'username': username, 'email': email})
+
 class DocumentViewSet(viewsets.ModelViewSet):
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
@@ -117,28 +143,21 @@ class DocumentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         base_queryset = Document.objects.all() if user.is_staff else Document.objects.filter(investor__user=user)
 
-        # If ?all_versions=true, return all versions
-        if self.request.query_params.get('all_versions', '').lower() == 'true':
+        # If this is a detail route (e.g., download, history), return all docs so any version can be found
+        if self.action in ['retrieve', 'download', 'history']:
             return base_queryset.order_by('-uploaded_at')
 
-        # Only return latest version for each (investor, name, doc_type) combination
-        # This is more efficient than the previous approach
+        # Only return latest version for each (investor, name, doc_type) combination for list
         latest_versions = []
-        
-        # Get unique combinations of (investor, name, doc_type)
         unique_docs = base_queryset.values('investor', 'name', 'doc_type').distinct()
-        
         for doc_combo in unique_docs:
-            # Get the latest version for each combination
             latest_doc = base_queryset.filter(
                 investor=doc_combo['investor'],
                 name=doc_combo['name'],
                 doc_type=doc_combo['doc_type']
             ).order_by('-version').first()
-            
             if latest_doc:
                 latest_versions.append(latest_doc.id)
-        
         return base_queryset.filter(id__in=latest_versions).order_by('-uploaded_at')
 
     def perform_create(self, serializer):
@@ -296,6 +315,28 @@ class DocumentViewSet(viewsets.ModelViewSet):
             'count': queryset.count(),
             'documents': serializer.data
         })
+
+    @action(detail=True, methods=['get'], url_path='download')
+    def download(self, request, pk=None):
+        """Return a pre-signed S3 URL for downloading the document."""
+        document = self.get_object()
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME
+        )
+        # The file field stores the S3 key
+        s3_key = document.file.name
+        bucket = settings.AWS_STORAGE_BUCKET_NAME
+
+        # Generate a pre-signed URL valid for 5 minutes
+        url = s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': bucket, 'Key': s3_key},
+            ExpiresIn=300
+        )
+        return Response({'url': url})
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all()

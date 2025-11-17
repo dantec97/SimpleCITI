@@ -36,10 +36,12 @@ A secure, enterprise-grade document management system built for financial servic
 - `GET /api/documents/{id}/` - Get document details
 - `GET /api/documents/{id}/history/` - Get document version history
 - `GET /api/documents/by-type/{type}/` - Filter by document type
+- `GET /api/documents/{id}/download/` - Get a secure, temporary S3 download link for a document
 
 ### Administration
 - `GET /api/investors/` - Manage investor profiles (admin only)
 - `GET /api/auditlogs/` - View audit logs (admin only)
+- `POST /api/investors/create_user/` - Create a new user account (admin only)
 
 ## 🛠️ Technology Stack
 

@@ -8,22 +8,45 @@
 
 ---
 
-## 🚀 Demo
+## 🚀 Demo & Features
 
 ### Admin Flow  
 <img src="Assets/SimpleCiti_admin_flow1.gif" alt="Admin creates user" width="600"/>
 
+**Admin User Management:**  
+Admins log in and create investor accounts (no open registration). Each user gets an InvestorProfile. Admins can view and manage all users, documents, and audit logs from the admin panel.
+
+---
+
 ### User Flow  
 <img src="Assets/SimpleCiti_user_flow3.gif" alt="User login and MFA" width="600"/>
+
+**User Login & MFA Enrollment:**  
+Investors log in with credentials provided by the admin. On first login, they are prompted to set up MFA by scanning a QR code and entering a code from their authenticator app. MFA is required for all future logins.
+
+---
 
 ### Admin: Documents View  
 <img src="Assets/admin_docs_view.jpg" alt="Admin documents view" width="600"/>
 
+**Secure Document Management:**  
+Admins can view all documents uploaded by investors. Each document upload is versioned, and previous versions are preserved. Documents are stored securely in AWS S3.
+
+---
+
 ### Admin: Audit Logs  
 <img src="Assets/audit_logs.png" alt="Admin audit logs" width="600"/>
 
+**Audit Logging:**  
+All sensitive actions (login, MFA setup, document upload/download, etc.) are logged. Admins can view audit logs for compliance and security monitoring.
+
+---
+
 ### AWS S3 Storage Example  
 <img src="Assets/s3 screenshot.png" alt="AWS S3 Screenshot" width="600"/>
+
+**AWS S3 Storage:**  
+All documents are stored in AWS S3 with unique keys. Documents are encrypted at rest and only accessible via secure, temporary presigned URLs.
 
 ---
 
@@ -52,7 +75,7 @@
 
 ## 🛠️ Tech Stack
 
-- **Frontend:** React 18, React Router, Fetch API
+- **Frontend:**  [Secure-Investor React Frontend](https://github.com/dantec97/SimpleCITI_frontend) (required)
 - **Styling:** Custom CSS (`src/Styles/Styles.css`)
 - **Backend:** [Secure-Investor Django API](https://github.com/dantec97/SimpleCITI) (required)
 - **Storage:** AWS S3 (for documents)

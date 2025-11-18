@@ -1,133 +1,191 @@
-# SecureInvestor - Document Management System
+<div align="center">
 
-A secure, enterprise-grade document management system built for financial services with multi-factor authentication, encrypted storage, and comprehensive audit logging.
+# Secure-Investor Frontend
 
-## 🔐 Security Features
+**A modern React frontend for Secure-Investor: Secure, auditable, and user-friendly document management for regulated industries.**
 
-- **Multi-Factor Authentication (MFA)** - TOTP with Google Authenticator
-- **Encrypted Document Storage** - AWS S3 with AES256 encryption
-- **Token-Based Authentication** - Secure API access
-- **Role-Based Permissions** - User/admin access control
-- **Comprehensive Audit Logging** - All actions tracked for compliance
-
-## 🚀 Key Features
-
-- **Document Upload & Versioning** - Automatic version management
-- **Secure File Storage** - AWS S3 integration with encryption
-- **RESTful APIs** - Complete CRUD operations
-- **Document History** - Track all versions of documents
-- **Admin Dashboard** - Django admin for system management
-- **Audit Trails** - Complete action logging for compliance
-
-## 📋 API Endpoints
-
-### Authentication
-- `POST /api/auth/login/` - Login with optional MFA
-- `POST /api/auth/token/` - Get authentication token
-
-### MFA Management
-- `POST /api/investors/mfa/setup/` - Generate MFA QR code
-- `POST /api/investors/mfa/verify/` - Enable MFA
-- `POST /api/investors/mfa/disable/` - Disable MFA
-
-### Document Management
-- `GET /api/documents/` - List documents (latest versions)
-- `POST /api/documents/` - Upload new document
-- `GET /api/documents/{id}/` - Get document details
-- `GET /api/documents/{id}/history/` - Get document version history
-- `GET /api/documents/by-type/{type}/` - Filter by document type
-- `GET /api/documents/{id}/download/` - Get a secure, temporary S3 download link for a document
-
-### Administration
-- `GET /api/investors/` - Manage investor profiles (admin only)
-- `GET /api/auditlogs/` - View audit logs (admin only)
-- `POST /api/investors/create_user/` - Create a new user account (admin only)
-
-## 🛠️ Technology Stack
-
-- **Backend:** Django 5.2.8 + Django REST Framework
-- **Database:** PostgreSQL
-- **Storage:** AWS S3 with server-side encryption
-- **Authentication:** Token Auth + TOTP MFA
-- **Security:** pyotp, qrcode generation
-
-## 📦 Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd secureinvestor
-   ```
-
-2. **Create virtual environment**
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate  # Windows
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install django djangorestframework psycopg2 boto3 pyotp qrcode[pil] python-dotenv
-   ```
-
-4. **Setup environment variables**
-   Create `.env` file with:
-   ```env
-   DJANGO_SECRET_KEY=your-secret-key
-   DJANGO_DEBUG=True
-   POSTGRES_DB=secureinvestor
-   POSTGRES_USER=postgres
-   POSTGRES_PASSWORD=your-password
-   AWS_ACCESS_KEY_ID=your-aws-key
-   AWS_SECRET_ACCESS_KEY=your-aws-secret
-   AWS_STORAGE_BUCKET_NAME=your-s3-bucket
-   AWS_S3_REGION_NAME=us-east-2
-   ```
-
-5. **Run migrations**
-   ```bash
-   python manage.py migrate
-   python manage.py createsuperuser
-   ```
-
-6. **Start development server**
-   ```bash
-   python manage.py runserver
-   ```
-
-## 🔒 Security Implementation
-
-### Multi-Factor Authentication
-- TOTP-based using Google Authenticator
-- QR code generation for easy setup
-- Time-based codes (30-second validity)
-
-### Document Security
-- Server-side encryption (AES256)
-- Access-controlled storage
-- No public bucket access
-
-### Audit Compliance
-- All user actions logged
-- Timestamp and user tracking
-- Admin-only audit log access
-
-## 📱 MFA Setup Flow
-
-1. User calls `/api/investors/mfa/setup/`
-2. Scans returned QR code with Google Authenticator
-3. Enters 6-digit code to verify setup
-4. MFA enabled for future logins
-
-## 🏢 Enterprise Features
-
-- Document versioning with history tracking
-- Role-based access control
-- Comprehensive audit trails
-- Encrypted file storage
-- Secure API endpoints
-- Professional error handling
+</div>
 
 ---
 
-*Built for enterprise-grade security and compliance requirements.*
+## 🚀 Demo
+
+### Admin Flow  
+<img src="Assets/Admin_create_user_flow.gif" alt="Admin creates user" width="600"/>
+
+### User Flow  
+<img src="Assets/User_flow.gif" alt="User login and MFA" width="600"/>
+
+### Admin: Documents View  
+<img src="Assets/admin_docs.png" alt="Admin documents view" width="600"/>
+
+### Admin: Audit Logs  
+<img src="Assets/admin_audit_logs.png" alt="Admin audit logs" width="600"/>
+
+### AWS S3 Storage Example  
+<img src="Assets/aws_s3_screenshot.png" alt="AWS S3 Screenshot" width="600"/>
+
+---
+
+## ✨ Features
+
+- **Admin User Management:**  
+  Admins create investor accounts (no open registration). Each user gets an InvestorProfile.
+- **Multi-Factor Authentication (MFA):**  
+  Users must set up MFA on first login (QR code + TOTP). MFA is required for all logins.
+- **Secure Document Management:**  
+  Investors upload documents (ID, statements, agreements, etc).  
+  Each upload is versioned; previous versions are preserved.  
+  Documents are stored securely in AWS S3.  
+  Users can view and download current and previous versions.
+- **Audit Logging:**  
+  All sensitive actions (login, MFA, upload, download, etc) are logged.  
+  Admins can view audit logs.
+- **Admin Panel:**  
+  Admins can view and manage users, documents, and logs.
+- **Modern UI/UX:**  
+  Responsive, dark-themed design with blue accent.  
+  Clear feedback for all actions.  
+  Consistent, accessible styling across all pages.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend:** React 18, React Router, Fetch API
+- **Styling:** Custom CSS (`src/Styles/Styles.css`)
+- **Backend:** [Secure-Investor Django API](https://github.com/your-org/secure-investor-backend) (required)
+- **Storage:** AWS S3 (for documents)
+- **Auth:** Django Token Auth + TOTP MFA
+
+---
+
+## ⚡ Getting Started
+
+### Prerequisites
+
+- Node.js (v18+ recommended)
+- npm or yarn
+- Access to the Secure-Investor Django backend (running locally or remotely)
+
+### Installation
+
+```bash
+git clone https://github.com/your-org/secure-investor-frontend.git
+cd secure-investor-frontend
+npm install
+# or
+yarn install
+```
+
+**Configure API endpoint:**  
+By default, the frontend expects the backend at `http://localhost:8000/api`.  
+To change this, edit `src/api/api.js` and update `API_BASE`.
+
+**Start the development server:**
+```bash
+npm run dev
+# or
+yarn dev
+```
+The app will be available at [http://localhost:5173](http://localhost:5173).
+
+---
+
+## 🧑‍💼 Usage
+
+### Admin Flow
+1. Log in as an admin (create via Django admin if needed).
+2. Use the Admin Panel to create new investor users.
+3. View all users, documents, and audit logs.
+
+### Investor Flow
+1. Log in with credentials provided by admin.
+2. On first login, set up MFA by scanning the QR code and entering a code from your authenticator app.
+3. Upload documents (ID, statements, etc).
+4. Uploading a document with the same name and type creates a new version.
+5. View and download current and previous versions.
+6. Manage MFA from the profile settings.
+
+### Security
+- All API requests require a valid token.
+- MFA is enforced for all users.
+- Documents are stored in S3 with unique keys and are only accessible via presigned URLs.
+- All sensitive actions are logged for audit/compliance.
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+  api/           # API helper functions
+  components/    # React components (Login, MFA, DocumentList, Admin, etc)
+  Styles/        # CSS files (main theme, login, etc)
+  App.jsx        # Main app component
+  main.jsx       # Entry point
+```
+
+---
+
+## 🎨 Customization
+
+- **Branding:**  
+  Update colors and logo in `src/Styles/Styles.css` and header in `App.jsx`.
+- **API Endpoint:**  
+  Change `API_BASE` in `src/api/api.js` if your backend is not at `localhost:8000`.
+- **Document Types:**  
+  Edit the options in `DocumentUpload.jsx` to add/remove document types.
+
+---
+
+## 🔒 Security Notes
+
+- **No open registration:** Only admins can create users.
+- **MFA enforced:** Users must set up MFA before accessing documents.
+- **Token Auth:** All API endpoints require a valid token.
+- **S3 Storage:** Documents are encrypted at rest and only accessible via presigned URLs.
+- **CORS:** Only trusted frontend origins should be allowed in backend settings.
+- **No secrets in code:** All secrets and keys are managed via environment variables on the backend.
+
+---
+
+## 📝 Demo Script (for Interviews)
+
+1. **Admin logs in and creates a new user.**
+2. **User logs in, sets up MFA.**
+3. **User uploads a document, then uploads a new version.**
+4. **User downloads both versions.**
+5. **Admin views audit logs.**
+6. **User disables MFA from profile settings.**
+
+---
+
+## 🛠️ Troubleshooting
+
+- **Cannot connect to backend:**  
+  Ensure the Django API is running and CORS is configured to allow your frontend.
+- **File upload/download issues:**  
+  Check S3 credentials and bucket permissions on the backend.
+- **MFA not working:**  
+  Ensure your device time is correct and you are using the correct code from your authenticator app.
+
+---
+
+## 📄 License
+
+MIT License
+
+---
+
+## 📬 Contact
+
+For questions or support, contact [your-email@company.com](mailto:your-email@company.com).
+
+---
+
+<div align="center">
+
+**This app provides a secure, auditable, and user-friendly way for investors to manage sensitive documents, with strong authentication, version control, and full admin oversight—making it ideal for regulated industries.**
+
+</div>

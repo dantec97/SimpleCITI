@@ -11,19 +11,19 @@
 ## 🚀 Demo
 
 ### Admin Flow  
-<img src="Assets/Admin_create_user_flow.gif" alt="Admin creates user" width="600"/>
+<img src="Assets/SimpleCiti_admin_flow1.gif" alt="Admin creates user" width="600"/>
 
 ### User Flow  
-<img src="Assets/User_flow.gif" alt="User login and MFA" width="600"/>
+<img src="Assets/SimpleCiti_user_flow3.gif" alt="User login and MFA" width="600"/>
 
 ### Admin: Documents View  
-<img src="Assets/admin_docs.png" alt="Admin documents view" width="600"/>
+<img src="Assets/admin_docs_view.jpg" alt="Admin documents view" width="600"/>
 
 ### Admin: Audit Logs  
-<img src="Assets/admin_audit_logs.png" alt="Admin audit logs" width="600"/>
+<img src="Assets/audit_logs.png" alt="Admin audit logs" width="600"/>
 
 ### AWS S3 Storage Example  
-<img src="Assets/aws_s3_screenshot.png" alt="AWS S3 Screenshot" width="600"/>
+<img src="Assets/s3 screenshot.png" alt="AWS S3 Screenshot" width="600"/>
 
 ---
 
@@ -54,7 +54,7 @@
 
 - **Frontend:** React 18, React Router, Fetch API
 - **Styling:** Custom CSS (`src/Styles/Styles.css`)
-- **Backend:** [Secure-Investor Django API](https://github.com/your-org/secure-investor-backend) (required)
+- **Backend:** [Secure-Investor Django API](https://github.com/dantec97/SimpleCITI) (required)
 - **Storage:** AWS S3 (for documents)
 - **Auth:** Django Token Auth + TOTP MFA
 
@@ -71,7 +71,7 @@
 ### Installation
 
 ```bash
-git clone https://github.com/your-org/secure-investor-frontend.git
+git clone https://github.com/dantec97/SimpleCITI_frontend.git
 cd secure-investor-frontend
 npm install
 # or
@@ -180,7 +180,7 @@ MIT License
 
 ## 📬 Contact
 
-For questions or support, contact [your-email@company.com](mailto:your-email@company.com).
+For questions or support, contact [dantecpriority@gmail.com](mailto:dantecpriority@gmail.com).
 
 ---
 

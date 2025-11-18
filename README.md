@@ -1,8 +1,8 @@
 <div align="center">
 
-# Secure-Investor Frontend
+# Secure-Investor Backend
 
-**A modern React frontend for Secure-Investor: Secure, auditable, and user-friendly document management for regulated industries.**
+**A secure Django REST API for document management with MFA, audit logging, and S3 storage - designed for regulated industries.**
 
 </div>
 
@@ -53,33 +53,31 @@ All documents are stored in AWS S3 with unique keys. Documents are encrypted at 
 ## ✨ Features
 
 - **Admin User Management:**  
-  Admins create investor accounts (no open registration). Each user gets an InvestorProfile.
+  Admins create investor accounts via Django admin or API. Each user gets an InvestorProfile.
 - **Multi-Factor Authentication (MFA):**  
-  Users must set up MFA on first login (QR code + TOTP). MFA is required for all logins.
+  TOTP-based MFA with QR code setup. Users self-enroll after first login.
 - **Secure Document Management:**  
-  Investors upload documents (ID, statements, agreements, etc).  
-  Each upload is versioned; previous versions are preserved.  
-  Documents are stored securely in AWS S3.  
-  Users can view and download current and previous versions.
+  Document upload with automatic versioning and S3 storage.  
+  Pre-signed URLs for secure downloads.  
+  Version history tracking with immutable previous versions.
 - **Audit Logging:**  
-  All sensitive actions (login, MFA, upload, download, etc) are logged.  
-  Admins can view audit logs.
-- **Admin Panel:**  
-  Admins can view and manage users, documents, and logs.
-- **Modern UI/UX:**  
-  Responsive, dark-themed design with blue accent.  
-  Clear feedback for all actions.  
-  Consistent, accessible styling across all pages.
+  Comprehensive logging of all sensitive actions for compliance.
+- **REST API:**  
+  Full REST API with token authentication and role-based permissions.
+- **Docker Support:**  
+  Complete containerization with PostgreSQL database.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend:**  [Secure-Investor React Frontend](https://github.com/dantec97/SimpleCITI_frontend) (required)
-- **Styling:** Custom CSS (`src/Styles/Styles.css`)
-- **Backend:** [Secure-Investor Django API](https://github.com/dantec97/SimpleCITI) (required)
-- **Storage:** AWS S3 (for documents)
-- **Auth:** Django Token Auth + TOTP MFA
+- **Backend:** Django 5.2.8, Django REST Framework
+- **Database:** PostgreSQL 15
+- **Storage:** AWS S3 (with server-side encryption)
+- **Authentication:** Django Token Auth + TOTP MFA (PyOTP)
+- **Containerization:** Docker & Docker Compose
+- **CI/CD:** GitHub Actions
+- **Frontend:** [Secure-Investor React Frontend](https://github.com/dantec97/SimpleCITI_frontend) (separate repo)
 
 ---
 
@@ -87,111 +85,223 @@ All documents are stored in AWS S3 with unique keys. Documents are encrypted at 
 
 ### Prerequisites
 
-- Node.js (v18+ recommended)
-- npm or yarn
-- Access to the Secure-Investor Django backend (running locally or remotely)
+- Python 3.11+
+- PostgreSQL (or Docker)
+- AWS S3 bucket with appropriate permissions
+- Environment variables (see `.env.example`)
 
 ### Installation
 
 ```bash
-git clone https://github.com/dantec97/SimpleCITI_frontend.git
-cd secure-investor-frontend
-npm install
-# or
-yarn install
+git clone https://github.com/dantec97/SimpleCITI.git
+cd SimpleCITI
 ```
 
-**Configure API endpoint:**  
-By default, the frontend expects the backend at `http://localhost:8000/api`.  
-To change this, edit `src/api/api.js` and update `API_BASE`.
-
-**Start the development server:**
+**Option 1: Docker (Recommended)**
 ```bash
-npm run dev
-# or
-yarn dev
+# Copy environment file and configure AWS credentials
+cp .env.example .env
+# Edit .env with your AWS credentials
+
+# Start with Docker Compose
+docker-compose up --build
 ```
-The app will be available at [http://localhost:5173](http://localhost:5173).
+
+**Option 2: Local Development**
+```bash
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your database and AWS credentials
+
+# Run migrations
+python manage.py migrate
+
+# Create superuser
+python manage.py createsuperuser
+
+# Start development server
+python manage.py runserver
+```
+
+The API will be available at [http://localhost:8000/api/](http://localhost:8000/api/).
+
+---
+
+## 📡 API Endpoints
+
+### Authentication
+- `POST /api/auth/login/` - Login with optional MFA
+- `POST /api/auth/token/` - Get auth token (standard Django)
+
+### User Management (Admin Only)
+- `GET /api/investors/` - List all investor profiles
+- `POST /api/investors/create_user/` - Create new user account
+- `GET /api/investors/{id}/` - Get specific investor profile
+
+### MFA Management
+- `POST /api/investors/mfa/setup/` - Generate MFA secret and QR code
+- `POST /api/investors/mfa/verify/` - Verify TOTP code and enable MFA
+- `POST /api/investors/mfa/disable/` - Disable MFA (requires current code)
+
+### Document Management
+- `GET /api/documents/` - List documents (latest versions only)
+- `POST /api/documents/` - Upload new document
+- `GET /api/documents/{id}/` - Get document details
+- `GET /api/documents/{id}/download/` - Get secure download URL
+- `GET /api/documents/{id}/history/` - Get all versions of a document
+- `GET /api/documents/latest/` - Explicitly get latest versions
+- `GET /api/documents/by-type/{type}/` - Filter by document type
+
+### Audit Logging (Admin Only)
+- `GET /api/auditlogs/` - List audit logs
+- `GET /api/auditlogs/?user_id={id}` - Filter by user
+- `GET /api/auditlogs/?action={action}` - Filter by action
+
+---
+
+## 🔐 Security Implementation
+
+### Multi-Factor Authentication
+- **TOTP-based:** Uses PyOTP for time-based one-time passwords
+- **QR Code Setup:** Automatic QR code generation for authenticator apps
+- **User-Driven:** Users set up MFA themselves, not admin-forced
+- **Backup Codes:** JSON field for future backup code implementation
+
+### Document Security
+- **S3 Storage:** All documents stored in AWS S3 with server-side encryption
+- **Unique Keys:** Each document version gets a unique S3 key (prevents overwrites)
+- **Pre-signed URLs:** Temporary, secure download links (5-minute expiry)
+- **Version Control:** Immutable previous versions with proper linking
+
+### Access Control
+- **Token Authentication:** Required for all API endpoints
+- **Role-Based Permissions:** Admin vs. user access levels
+- **Document Isolation:** Users can only access their own documents
+- **CORS Protection:** Configured for specific frontend origins
+
+### Audit Trail
+- **Comprehensive Logging:** All sensitive actions logged automatically
+- **User Attribution:** Every log entry tied to specific user
+- **Timestamp Tracking:** Precise timing of all actions
+- **Searchable:** Logs can be filtered by user or action type
 
 ---
 
 ## 🧑‍💼 Usage
 
-### Admin Flow
-1. Log in as an admin (create via Django admin if needed).
-2. Use the Admin Panel to create new investor users.
-3. View all users, documents, and audit logs.
+### Admin Workflow
+1. Log in to Django admin panel (`/admin/`)
+2. Create user accounts with required email addresses
+3. View all documents, users, and audit logs
+4. Monitor system activity via audit logs
 
-### Investor Flow
-1. Log in with credentials provided by admin.
-2. On first login, set up MFA by scanning the QR code and entering a code from your authenticator app.
-3. Upload documents (ID, statements, etc).
-4. Uploading a document with the same name and type creates a new version.
-5. View and download current and previous versions.
-6. Manage MFA from the profile settings.
+### Investor Workflow
+1. Log in with admin-provided credentials
+2. Set up MFA on first login (scan QR code)
+3. Upload documents (automatic versioning)
+4. View and download document versions
+5. Manage MFA settings as needed
 
-### Security
-- All API requests require a valid token.
-- MFA is enforced for all users.
-- Documents are stored in S3 with unique keys and are only accessible via presigned URLs.
-- All sensitive actions are logged for audit/compliance.
+### Document Versioning
+- Same name + document type = new version
+- Different name or type = new document
+- Each version maintains its own S3 file
+- Version history accessible via API
+
+---
+
+## 🐳 Docker Deployment
+
+```yaml
+# docker-compose.yml includes:
+services:
+  db:          # PostgreSQL 15 database
+  web:         # Django app with Gunicorn
+```
+
+**Environment Variables:**
+- Database credentials and connection
+- AWS S3 credentials and bucket info  
+- Django secret key and debug settings
+- CORS allowed origins
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+python manage.py test
+
+# Run specific test class
+python manage.py test investors.tests.SimpleTests
+
+# With coverage (if installed)
+coverage run --source='.' manage.py test
+coverage report
+```
+
+**CI/CD:** GitHub Actions automatically runs tests on push/PR.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-src/
-  api/           # API helper functions
-  components/    # React components (Login, MFA, DocumentList, Admin, etc)
-  Styles/        # CSS files (main theme, login, etc)
-  App.jsx        # Main app component
-  main.jsx       # Entry point
+secureinvestor/
+├── investors/           # Main Django app
+│   ├── models.py       # User profiles, documents, audit logs
+│   ├── views.py        # API viewsets and MFA logic
+│   ├── serializers.py  # DRF serializers
+│   ├── admin.py        # Django admin configuration
+│   └── tests.py        # Unit tests
+├── secureinvestor/     # Django project settings
+│   ├── settings.py     # Configuration and AWS setup
+│   └── urls.py         # URL routing
+├── Assets/             # Demo images/GIFs
+├── requirements.txt    # Python dependencies
+├── docker-compose.yml  # Container orchestration
+└── .github/workflows/  # CI/CD configuration
 ```
-
----
-
-## 🎨 Customization
-
-- **Branding:**  
-  Update colors and logo in `src/Styles/Styles.css` and header in `App.jsx`.
-- **API Endpoint:**  
-  Change `API_BASE` in `src/api/api.js` if your backend is not at `localhost:8000`.
-- **Document Types:**  
-  Edit the options in `DocumentUpload.jsx` to add/remove document types.
 
 ---
 
 ## 🔒 Security Notes
 
-- **No open registration:** Only admins can create users.
-- **MFA enforced:** Users must set up MFA before accessing documents.
-- **Token Auth:** All API endpoints require a valid token.
-- **S3 Storage:** Documents are encrypted at rest and only accessible via presigned URLs.
-- **CORS:** Only trusted frontend origins should be allowed in backend settings.
-- **No secrets in code:** All secrets and keys are managed via environment variables on the backend.
+- **No open registration:** Only admins can create user accounts
+- **MFA enforcement:** Users must set up MFA before document access
+- **S3 encryption:** All documents encrypted at rest (AES-256)
+- **Pre-signed URLs:** Temporary, secure access to documents
+- **Environment variables:** No secrets in codebase
+- **Audit logging:** Complete action history for compliance
+- **CORS configuration:** Restricted to trusted origins
+- **Token expiration:** Implement token rotation for production
 
 ---
 
-## 📝 Demo Script (for Interviews)
+## 🚀 Production Considerations
 
-1. **Admin logs in and creates a new user.**
-2. **User logs in, sets up MFA.**
-3. **User uploads a document, then uploads a new version.**
-4. **User downloads both versions.**
-5. **Admin views audit logs.**
-6. **User disables MFA from profile settings.**
+### Missing for Production
+- **OAuth Integration:** Add social auth or enterprise SSO
+- **Secrets Management:** Integrate AWS Secrets Manager or HashiCorp Vault
+- **Advanced Monitoring:** Add Sentry for error tracking, Prometheus for metrics
+- **Rate Limiting:** Implement API rate limiting
+- **Backup Strategy:** Automated database and S3 backups
+- **Load Balancing:** Multi-instance deployment with load balancer
 
----
-
-## 🛠️ Troubleshooting
-
-- **Cannot connect to backend:**  
-  Ensure the Django API is running and CORS is configured to allow your frontend.
-- **File upload/download issues:**  
-  Check S3 credentials and bucket permissions on the backend.
-- **MFA not working:**  
-  Ensure your device time is correct and you are using the correct code from your authenticator app.
+### Recommended Additions
+- **API Documentation:** Swagger/OpenAPI specification
+- **Health Checks:** Kubernetes/Docker health check endpoints
+- **Log Aggregation:** Centralized logging (ELK stack, CloudWatch)
+- **Performance Monitoring:** APM tools for Django performance
+- **Security Scanning:** Automated vulnerability assessments
 
 ---
 
@@ -209,6 +319,6 @@ For questions or support, contact [dantecpriority@gmail.com](mailto:dantecpriori
 
 <div align="center">
 
-**This app provides a secure, auditable, and user-friendly way for investors to manage sensitive documents, with strong authentication, version control, and full admin oversight—making it ideal for regulated industries.**
+**This Django backend provides enterprise-grade security and auditability for sensitive document management, making it ideal for financial services and other regulated industries.**
 
 </div>
